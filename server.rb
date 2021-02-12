@@ -139,8 +139,9 @@ def start
     select clients help history clear quit exit hardexit
   ]
 
-  port = 3000
-  port = ARGV[0].to_i unless ARGV[0].nil?
+  port = ARGV[0]
+  port ||= 3000
+
   client = nil
   data = nil
   history = []
