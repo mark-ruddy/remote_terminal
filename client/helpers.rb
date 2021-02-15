@@ -1,6 +1,5 @@
 require 'socket'
 require 'etc'
-require 'net/http'
 
 module Helpers
   def self.exe(cmd)
@@ -25,7 +24,7 @@ module Helpers
     `ifconfig || ip a`
   end
 
-  def self.sysinfo
+  def self.system
     result = "OS: " + RUBY_PLATFORM + "\n"
     result += "Architecture: " + `uname -m`
     result += "Hostname: " + Socket.gethostname + "\n"

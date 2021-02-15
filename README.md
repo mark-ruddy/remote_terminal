@@ -1,5 +1,5 @@
 # ryat
-Lightweight Linux RAT in Ruby 3.0.0.  
+Linux RAT in Ruby 3.0.0.  
 
 Clients are persistent and will stay active waiting to reconnect if the server closes. You can also launch clients before starting the server and they will attempt to connect every 2 seconds.
 
