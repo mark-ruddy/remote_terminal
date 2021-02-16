@@ -44,7 +44,6 @@ class Server
         @clients[client_id] = client
         @client_count += 1
       rescue Exception => e
-        puts e.message.red
         puts e.backtrace.red
       end
     end
@@ -79,7 +78,6 @@ class Server
     begin
       client.connection.write(msg)
     rescue Exception => e
-      puts e.message.red
       puts e.backtrace.red
     end
   end
@@ -89,7 +87,6 @@ class Server
       len = client.connection.gets
       client.connection.read(len.to_i)
     rescue Exception => e
-      puts e.message.red
       puts e.backtrace.red
     end
   end
@@ -212,7 +209,7 @@ def start
     # Client Commands
     when 'exe'
       next if action.nil?
-      server.send_client(input.gsub('exe ', ''), server.current_client)
+      server.send_client(input, server.current_client)
       data = server.recv_client(server.current_client)
     when 'ls', 'pwd', 'pid', 'ifconfig', 'system'
       server.send_client(cmd, server.current_client)
