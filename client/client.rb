@@ -35,7 +35,7 @@ end
 
 
 def main(host, port, timeout)
-  # Main loop around handle_client loop to repeat attempt server connection
+  # Main loop to repeatedly attempt server connection
   loop do
     client = nil
     begin

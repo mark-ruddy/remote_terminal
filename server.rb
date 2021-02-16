@@ -45,7 +45,7 @@ class Server
         @client_count += 1
       rescue Exception => e
         puts e.message.red
-        puts e.backtrace.join("\n").red
+        puts e.backtrace.red
       end
     end
   end
@@ -80,7 +80,7 @@ class Server
       client.connection.write(msg)
     rescue Exception => e
       puts e.message.red
-      puts e.backtrace.join("\n").red
+      puts e.backtrace.red
     end
   end
 
@@ -90,7 +90,7 @@ class Server
       client.connection.read(len.to_i)
     rescue Exception => e
       puts e.message.red
-      puts e.backtrace.join("\n").red
+      puts e.backtrace.red
     end
   end
 
