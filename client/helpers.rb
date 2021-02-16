@@ -20,7 +20,7 @@ module Helpers
   end
 
   def self.ifconfig
-    # With || 'ip a' will run if ifconfig is not installed
+    # With || 'ip a' will run if 'ifconfig' is not installed
     `ifconfig || ip a`
   end
 

