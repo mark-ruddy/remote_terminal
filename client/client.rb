@@ -9,11 +9,11 @@ def handle_client(client)
     next if data.nil?
     cmd, action = data.split ' '
     case cmd
-    when 'hearbeat'
+    when 'heartbeat'
       result = 'alive'
     when 'exe'
       begin
-        result = Helpers.exe(data.gsub('exe ', ''))
+        result = Helpers.exe(data)
       rescue Exception => e
         puts e.backtrace
       end

