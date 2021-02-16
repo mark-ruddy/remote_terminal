@@ -1,7 +1,7 @@
 # ryat
 Linux RAT in Ruby 3.0.0.  
 
-Clients are persistent and will stay active waiting to reconnect if the server closes. You can also launch clients before starting the server and they will attempt to connect every 2 seconds.
+Clients are persistent and will stay active waiting to reconnect if the server closes. You can launch clients before starting the server and they will attempt to connect every 2 seconds.
 
 ### Gems Required
 - colorize
@@ -31,14 +31,9 @@ Some specific commands that Ruby cannot execute will have no effect, such as `ex
 
 `hardexit` will close the server, and also send a destroy message to clients, closing them too. `exit` will close the server only and clients will continue to listen for a server restart. Use `destroy <ID>` to remove a specific client.
 
-### Reconnect Bug
-When a client hits an error it will attempt to reconnect - this can produce a duplicate client from the same IP. The recent connection will work, but the older duplicate won't.  
-
-When attempting to use the broken client the server will hang waiting for a response, press ctrl+c and you will be returned to the server prompt. You can then `destroy <ID>` the broken client.  
-
 ### Shell Output Issue
 
 Most commands like `exe ls` will return text output to the server. \
-Other commands such as `exe wget www.google.com` will work but there will be no output to the server until you run `exe ls` to see the downloaded file. The server cannot see all I/O on the client side because its not a full reverse shell.
+Other commands such as `exe wget www.google.com` will work but there will be no output to the server until you run `exe ls` to see the downloaded file. The server cannot see all I/O on the client side as its not a full reverse shell.
 
-If you have a fix for these issues or any other improvements feel free to contribute it!
+If you have a fix or any other improvements feel free to contribute it!
