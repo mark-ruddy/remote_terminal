@@ -12,12 +12,12 @@ def handle_client(client)
     when 'heartbeat'
       result = 'alive'
     when 'exe'
-      begin
-			  result = Helpers.exe(data.gsub('exe ', ''))
-      rescue Exception => e
-        puts e.message
-				puts e.backtrace
-      end
+    begin
+      result = Helpers.exe(data.gsub('exe ', ''))
+    rescue Exception => e
+      puts e.message
+      puts e.backtrace
+    end
     when 'ls'
       result = Helpers.ls
     when 'pwd'
