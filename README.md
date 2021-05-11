@@ -1,5 +1,5 @@
 # ryat
-Linux RAT in Ruby 3.0.0.  
+Remote administration tool for Linux written in Ruby.  
 
 Clients are persistent and will stay active waiting to reconnect if the server closes. You can launch clients before starting the server and they will attempt to connect every 2 seconds.
 
