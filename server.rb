@@ -2,6 +2,7 @@
 
 require 'socket'
 require 'colorize'
+require 'securerandom'
 
 class Client
   attr_accessor :connection, :addr, :uid
@@ -32,7 +33,7 @@ class Server
     loop do
       begin
         connection = @server.accept
-        client_id = @client_count + 1
+        client_id = SecureRandom.uuid
 
         client = Client.new(
           connection,
@@ -187,7 +188,7 @@ def start
     when 'help'
       help(server_cmds, client_cmds)
     when 'select'
-      server.select_client(action.to_i)
+      server.select_client(action)
     when 'unselect'
       server.unselect
     when 'clients'
