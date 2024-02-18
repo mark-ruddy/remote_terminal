@@ -143,7 +143,7 @@ def help(server_cmds, client_cmds)
   client_cmds.each { |cli| puts "- #{cli}" }
 end
 
-def get_input(prompt = 'ryat>')
+def get_input(prompt = 'remote_terminal>')
   print "#{prompt} "
   $stdin.gets.chomp
 end
@@ -171,7 +171,7 @@ def start
     if server.current_client.nil?
       input = get_input
     else
-      input = get_input("ryat (Client #{server.current_client.uid})> ")
+      input = get_input("remote_terminal (Client #{server.current_client.uid})> ")
     end
     next if input.nil?
     history.push(input)
